@@ -168,7 +168,7 @@ module ActiveMerchant #:nodoc:
       def validate
         validate_essential_attributes
 
-        validate_card_type
+        validate_card_brand
         validate_card_number
         validate_verification_value
         validate_switch_or_solo_attributes
