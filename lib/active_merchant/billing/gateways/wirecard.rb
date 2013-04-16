@@ -80,7 +80,6 @@ module ActiveMerchant #:nodoc:
 
       # Authorization for the repeated payment
       def authorize_repeated(money, creditcard, options = {})
-        prepare_options_hash(options)
         options[:credit_card] = creditcard
         options[:recurring] = 'Initial'
         commit(:authorization, money, options)
@@ -88,8 +87,8 @@ module ActiveMerchant #:nodoc:
 
       # Purchase with repeated payment
       def charge_repeated(guwid, options = {})
-        options[:authorization] = guwid
-        if !options[:authorization] && options[:credit_card]
+        options[:preauthorization] = guwid
+        if !options[:preauthorization] && options[:credit_card]
           options[:credit_card] = options[:credit_card]
         else
           options.delete(:credit_card)

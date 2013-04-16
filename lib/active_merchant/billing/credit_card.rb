@@ -3,49 +3,49 @@ require 'date'
 require 'active_merchant/billing/expiry_date'
 
 module ActiveMerchant #:nodoc:
-  module Billing #:nodoc:
-                 # A +CreditCard+ object represents a physical credit card, and is capable of validating the various
-                 # data associated with these.
-                 #
-                 # At the moment, the following credit card types are supported:
-                 #
-                 # * Visa
-                 # * MasterCard
-                 # * Discover
-                 # * American Express
-                 # * Diner's Club
-                 # * JCB
-                 # * Switch
-                 # * Solo
-                 # * Dankort
-                 # * Maestro
-                 # * Forbrugsforeningen
-                 # * Laser
-                 #
-                 # For testing purposes, use the 'bogus' credit card brand. This skips the vast majority of
-                 # validations, allowing you to focus on your core concerns until you're ready to be more concerned
-                 # with the details of particular credit cards or your gateway.
-                 #
-                 # == Testing With CreditCard
-                 # Often when testing we don't care about the particulars of a given card brand. When using the 'test'
-                 # mode in your {Gateway}, there are six different valid card numbers: 1, 2, 3, 'success', 'fail',
-                 # and 'error'.
-                 #
-                 # For details, see {CreditCardMethods::ClassMethods#valid_number?}
-                 #
-                 # == Example Usage
-                 #   cc = CreditCard.new(
-                 #     :first_name => 'Steve',
-                 #     :last_name  => 'Smith',
-                 #     :month      => '9',
-                 #     :year       => '2010',
-                 #     :brand      => 'visa',
-                 #     :number     => '4242424242424242'
-                 #   )
-                 #
-                 #   cc.valid? # => true
-                 #   cc.display_number # => XXXX-XXXX-XXXX-4242
-                 #
+  module Billing
+    # A +CreditCard+ object represents a physical credit card, and is capable of validating the various
+    # data associated with these.
+    #
+    # At the moment, the following credit card types are supported:
+    #
+    # * Visa
+    # * MasterCard
+    # * Discover
+    # * American Express
+    # * Diner's Club
+    # * JCB
+    # * Switch
+    # * Solo
+    # * Dankort
+    # * Maestro
+    # * Forbrugsforeningen
+    # * Laser
+    #
+    # For testing purposes, use the 'bogus' credit card brand. This skips the vast majority of
+    # validations, allowing you to focus on your core concerns until you're ready to be more concerned
+    # with the details of particular credit cards or your gateway.
+    #
+    # == Testing With CreditCard
+    # Often when testing we don't care about the particulars of a given card brand. When using the 'test'
+    # mode in your {Gateway}, there are six different valid card numbers: 1, 2, 3, 'success', 'fail',
+    # and 'error'.
+    #
+    # For details, see {CreditCardMethods::ClassMethods#valid_number?}
+    #
+    # == Example Usage
+    #   cc = CreditCard.new(
+    #     :first_name => 'Steve',
+    #     :last_name  => 'Smith',
+    #     :month      => '9',
+    #     :year       => '2010',
+    #     :brand      => 'visa',
+    #     :number     => '4242424242424242'
+    #   )
+    #
+    #   cc.valid? # => true
+    #   cc.display_number # => XXXX-XXXX-XXXX-4242
+    #
     class CreditCard
       include CreditCardMethods
       include Validateable
