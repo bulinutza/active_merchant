@@ -210,7 +210,7 @@ module ActiveMerchant #:nodoc:
         else
           valid_types = CreditCard.card_companies.keys
         end
-        errors.add :brand, :default_error_messages_invalid.t  unless valid_types.include?(type)
+        errors.add :brand, :default_error_messages_invalid.t  unless valid_types.include?(brand)
       end
 
       alias_method :validate_card_type, :validate_card_brand
