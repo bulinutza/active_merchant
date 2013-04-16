@@ -9,6 +9,8 @@ module ActiveMerchant #:nodoc:
         'american_express'   => /^3[47]\d{13}$/,
         'diners_club'        => /^3(0[0-5]|[68]\d)\d{11}$/,
         'jcb'                => /^35(28|29|[3-8]\d)\d{12}$/,
+        #        'jcb'                => /^3528\d{12}$/,
+        #        'jcb'                => /^35\d{14}$/,       # tvollmer_patch see wikipedia
         'switch'             => /^6759\d{12}(\d{2,3})?$/,
         'solo'               => /^6767\d{12}(\d{2,3})?$/,
         'dankort'            => /^5019\d{12}$/,
@@ -123,7 +125,7 @@ module ActiveMerchant #:nodoc:
         
         def valid_test_mode_card_number?(number) #:nodoc:
           ActiveMerchant::Billing::Base.test? && 
-            %w[1 2 3 success failure error].include?(number.to_s)
+            %w[1 2 3 success failure error 4200000000000000].include?(number.to_s)
         end
         
         # Checks the validity of a card number by use of the the Luhn Algorithm. 

@@ -71,12 +71,12 @@ module ActiveMerchant #:nodoc:
           def received_at
             parsed_time_fields = DateTime._strptime(params['payment_date'], "%H:%M:%S %b %d, %Y %Z")
             Time.gm(
-              parsed_time_fields[:year],
-              parsed_time_fields[:mon],
-              parsed_time_fields[:mday],
-              parsed_time_fields[:hour],
-              parsed_time_fields[:min],
-              parsed_time_fields[:sec]
+                parsed_time_fields[:year],
+                parsed_time_fields[:mon],
+                parsed_time_fields[:mday],
+                parsed_time_fields[:hour],
+                parsed_time_fields[:min],
+                parsed_time_fields[:sec]
             ) + Time.zone_offset(parsed_time_fields[:zone])
           end
 
@@ -162,8 +162,9 @@ module ActiveMerchant #:nodoc:
             payload =  raw
 
             response = ssl_post(Paypal.service_url + '?cmd=_notify-validate', payload,
-              'Content-Length' => "#{payload.size}",
-              'User-Agent'     => "Active Merchant -- http://activemerchant.org"
+                                'Content-Length' => "#{payload.size}",
+                                'User-Agent'     => "Active Merchant -- http://activemerchant.org",
+                                'Content-Type'   => "application/x-www-form-urlencoded"
             )
 
             raise StandardError.new("Faulty paypal result: #{response}") unless ["VERIFIED", "INVALID"].include?(response)
@@ -201,13 +202,13 @@ module ActiveMerchant #:nodoc:
           def items
             @items ||= (1..number_of_mass_pay_items).map do |item_number|
               MassPayItem.new(
-                params["masspay_txn_id_#{item_number}"],
-                params["mc_gross_#{item_number}"],
-                params["mc_fee_#{item_number}"],
-                params["mc_currency_#{item_number}"],
-                params["unique_id_#{item_number}"],
-                params["receiver_email_#{item_number}"],
-                params["status_#{item_number}"]
+                  params["masspay_txn_id_#{item_number}"],
+                  params["mc_gross_#{item_number}"],
+                  params["mc_fee_#{item_number}"],
+                  params["mc_currency_#{item_number}"],
+                  params["unique_id_#{item_number}"],
+                  params["receiver_email_#{item_number}"],
+                  params["status_#{item_number}"]
               )
             end
           end

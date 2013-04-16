@@ -4,48 +4,48 @@ require 'active_merchant/billing/expiry_date'
 
 module ActiveMerchant #:nodoc:
   module Billing #:nodoc:
-    # A +CreditCard+ object represents a physical credit card, and is capable of validating the various
-    # data associated with these.
-    #
-    # At the moment, the following credit card types are supported:
-    #
-    # * Visa
-    # * MasterCard
-    # * Discover
-    # * American Express
-    # * Diner's Club
-    # * JCB
-    # * Switch
-    # * Solo
-    # * Dankort
-    # * Maestro
-    # * Forbrugsforeningen
-    # * Laser
-    #
-    # For testing purposes, use the 'bogus' credit card brand. This skips the vast majority of
-    # validations, allowing you to focus on your core concerns until you're ready to be more concerned
-    # with the details of particular credit cards or your gateway.
-    #
-    # == Testing With CreditCard
-    # Often when testing we don't care about the particulars of a given card brand. When using the 'test'
-    # mode in your {Gateway}, there are six different valid card numbers: 1, 2, 3, 'success', 'fail',
-    # and 'error'.
-    #
-    # For details, see {CreditCardMethods::ClassMethods#valid_number?}
-    #
-    # == Example Usage
-    #   cc = CreditCard.new(
-    #     :first_name => 'Steve',
-    #     :last_name  => 'Smith',
-    #     :month      => '9',
-    #     :year       => '2010',
-    #     :brand      => 'visa',
-    #     :number     => '4242424242424242'
-    #   )
-    #
-    #   cc.valid? # => true
-    #   cc.display_number # => XXXX-XXXX-XXXX-4242
-    #
+                 # A +CreditCard+ object represents a physical credit card, and is capable of validating the various
+                 # data associated with these.
+                 #
+                 # At the moment, the following credit card types are supported:
+                 #
+                 # * Visa
+                 # * MasterCard
+                 # * Discover
+                 # * American Express
+                 # * Diner's Club
+                 # * JCB
+                 # * Switch
+                 # * Solo
+                 # * Dankort
+                 # * Maestro
+                 # * Forbrugsforeningen
+                 # * Laser
+                 #
+                 # For testing purposes, use the 'bogus' credit card brand. This skips the vast majority of
+                 # validations, allowing you to focus on your core concerns until you're ready to be more concerned
+                 # with the details of particular credit cards or your gateway.
+                 #
+                 # == Testing With CreditCard
+                 # Often when testing we don't care about the particulars of a given card brand. When using the 'test'
+                 # mode in your {Gateway}, there are six different valid card numbers: 1, 2, 3, 'success', 'fail',
+                 # and 'error'.
+                 #
+                 # For details, see {CreditCardMethods::ClassMethods#valid_number?}
+                 #
+                 # == Example Usage
+                 #   cc = CreditCard.new(
+                 #     :first_name => 'Steve',
+                 #     :last_name  => 'Smith',
+                 #     :month      => '9',
+                 #     :year       => '2010',
+                 #     :brand      => 'visa',
+                 #     :number     => '4242424242424242'
+                 #   )
+                 #
+                 #   cc.valid? # => true
+                 #   cc.display_number # => XXXX-XXXX-XXXX-4242
+                 #
     class CreditCard
       include CreditCardMethods
       include Validateable
@@ -90,15 +90,10 @@ module ActiveMerchant #:nodoc:
       # @return (String) the credit card brand
       attr_accessor :brand
 
-      # Returns or sets the first name of the card holder.
+      # Returns or sets the name of the card holder.
       #
       # @return [String]
-      attr_accessor :first_name
-
-      # Returns or sets the last name of the card holder.
-      #
-      # @return [String]
-      attr_accessor :last_name
+      attr_accessor :name
 
       # Required for Switch / Solo cards
       attr_accessor :start_month, :start_year, :issue_number
@@ -138,30 +133,7 @@ module ActiveMerchant #:nodoc:
 
       # Returns whether either the +first_name+ or the +last_name+ attributes has been set.
       def name?
-        first_name? || last_name?
-      end
-
-      # Returns whether the +first_name+ attribute has been set.
-      def first_name?
-        @first_name.present?
-      end
-
-      # Returns whether the +last_name+ attribute has been set.
-      def last_name?
-        @last_name.present?
-      end
-
-      # Returns the full name of the card holder.
-      #
-      # @return [String] the full name of the card holder
-      def name
-        [@first_name, @last_name].compact.join(' ')
-      end
-
-      def name=(full_name)
-        names = full_name.split
-        self.last_name  = names.pop
-        self.first_name = names.join(" ")
+        @name.present?
       end
 
       def verification_value?
@@ -196,10 +168,7 @@ module ActiveMerchant #:nodoc:
       def validate
         validate_essential_attributes
 
-        # Bogus card is pretty much for testing purposes. Lets just skip these extra tests if its used
-        return if brand == 'bogus'
-
-        validate_card_brand
+        validate_card_type
         validate_card_number
         validate_verification_value
         validate_switch_or_solo_attributes
@@ -219,54 +188,59 @@ module ActiveMerchant #:nodoc:
         self.number = number.to_s.gsub(/[^\d]/, "")
         self.brand.downcase! if brand.respond_to?(:downcase)
         self.brand = self.class.brand?(number) if brand.blank?
+        self.name = self.name.strip
       end
 
       def validate_card_number #:nodoc:
         if number.blank?
-          errors.add :number, "is required"
+          errors.add :number, :default_error_messages_blank.t
         elsif !CreditCard.valid_number?(number)
-          errors.add :number, "is not a valid credit card number"
+          errors.add :number, :default_error_messages_invalid_creditcard.t
         end
 
         unless errors.on(:number) || errors.on(:brand)
-          errors.add :brand, "does not match the card number" unless CreditCard.matching_brand?(number, brand)
+          errors.add :brand, :default_error_messages_creditcard_does_not_match.t unless CreditCard.matching_brand?(number, brand)
         end
       end
 
       def validate_card_brand #:nodoc:
-        errors.add :brand, "is required" if brand.blank? && number.present?
-        errors.add :brand, "is invalid"  unless brand.blank? || CreditCard.card_companies.keys.include?(brand)
+        errors.add :brand, :default_error_messages_blank.t  if brand.blank? && number.present?
+        if ActiveMerchant::Billing::Base.test?
+          valid_types = ['bogus'] + CreditCard.card_companies.keys
+        else
+          valid_types = CreditCard.card_companies.keys
+        end
+        errors.add :brand, :default_error_messages_invalid.t  unless valid_types.include?(type)
       end
 
       alias_method :validate_card_type, :validate_card_brand
 
       def validate_essential_attributes #:nodoc:
-        errors.add :first_name, "cannot be empty"      if @first_name.blank?
-        errors.add :last_name,  "cannot be empty"      if @last_name.blank?
+        errors.add :name, :default_error_messages_empty.t      if @name.blank?
 
         if @month.to_i.zero? || @year.to_i.zero?
-          errors.add :month, "is required"  if @month.to_i.zero?
-          errors.add :year,  "is required"  if @year.to_i.zero?
+          errors.add :month, :default_error_messages_blank.t   if @month.to_i.zero?
+          errors.add :year,  :default_error_messages_blank.t   if @year.to_i.zero?
         else
-          errors.add :month,      "is not a valid month" unless valid_month?(@month)
-          errors.add :year,       "expired"              if expired?
-          errors.add :year,       "is not a valid year"  unless expired? || valid_expiry_year?(@year)
+          errors.add :month,      :default_error_messages_invalid.t unless valid_month?(@month)
+          errors.add :year,       :default_error_messages_expired.t if expired?
+          errors.add :year,       :default_error_messages_invalid.t unless expired? || valid_expiry_year?(@year)
         end
       end
 
       def validate_switch_or_solo_attributes #:nodoc:
         if %w[switch solo].include?(brand)
           unless valid_month?(@start_month) && valid_start_year?(@start_year) || valid_issue_number?(@issue_number)
-            errors.add :start_month,  "is invalid"      unless valid_month?(@start_month)
-            errors.add :start_year,   "is invalid"      unless valid_start_year?(@start_year)
-            errors.add :issue_number, "cannot be empty" unless valid_issue_number?(@issue_number)
+            errors.add :start_month,  :default_error_messages_invalid.t      unless valid_month?(@start_month)
+            errors.add :start_year,   :default_error_messages_invalid.t     unless valid_start_year?(@start_year)
+            errors.add :issue_number, :default_error_messages_empty.t unless valid_issue_number?(@issue_number)
           end
         end
       end
 
       def validate_verification_value #:nodoc:
         if CreditCard.requires_verification_value?
-          errors.add :verification_value, "is required" unless verification_value?
+          errors.add :verification_value, :default_error_messages_blank.t unless verification_value?
         end
       end
     end

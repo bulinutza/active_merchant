@@ -12,8 +12,8 @@ module ActiveMerchant #:nodoc:
       # The Namespaces are not really needed, because it just tells the System, that there's actually no namespace used.
       # It's just specified here for completeness.
       ENVELOPE_NAMESPACES = {
-        'xmlns:xsi' => 'http://www.w3.org/1999/XMLSchema-instance',
-        'xsi:noNamespaceSchemaLocation' => 'wirecard.xsd'
+          'xmlns:xsi' => 'http://www.w3.org/1999/XMLSchema-instance',
+          'xsi:noNamespaceSchemaLocation' => 'wirecard.xsd'
       }
 
       PERMITTED_TRANSACTIONS = %w[ PREAUTHORIZATION CAPTURE PURCHASE ]
@@ -37,7 +37,7 @@ module ActiveMerchant #:nodoc:
       # JCB, Switch, VISA Carte Bancaire, Visa Electron and UATP cards.
       # They also support the latest anti-fraud systems such as Verified by Visa or Master Secure Code.
       self.supported_cardtypes = [
-        :visa, :master, :american_express, :diners_club, :jcb, :switch
+          :visa, :master, :american_express, :diners_club, :jcb, :switch, :discover
       ]
 
       # The homepage URL of the gateway
@@ -78,6 +78,28 @@ module ActiveMerchant #:nodoc:
         commit(:purchase, money, options)
       end
 
+      # Authorization for the repeated payment
+      def authorize_repeated(money, creditcard, options = {})
+        prepare_options_hash(options)
+        options[:credit_card] = creditcard
+        options[:recurring] = 'Initial'
+        commit(:authorization, money, options)
+      end
+
+      # Purchase with repeated payment
+      def charge_repeated(guwid, options = {})
+        options[:authorization] = guwid
+        if !options[:authorization] && options[:credit_card]
+          options[:credit_card] = options[:credit_card]
+        else
+          options.delete(:credit_card)
+        end
+        options[:recurring] = 'Repeated'
+        money = nil
+        money = options[:money] if options[:money]
+        commit(:purchase, money, options)
+      end
+
       private
 
       def prepare_options_hash(options)
@@ -110,10 +132,10 @@ module ActiveMerchant #:nodoc:
         authorization = response[:GuWID]
 
         Response.new(success, message, response,
-          :test => test?,
-          :authorization => authorization,
-          :avs_result => { :code => response[:avsCode] },
-          :cvv_result => response[:cvCode]
+                     :test => test?,
+                     :authorization => authorization,
+                     :avs_result => { :code => response[:avsCode] },
+                     :cvv_result => response[:cvCode]
         )
       rescue ResponseError => e
         if e.response.code == "401"
@@ -131,8 +153,8 @@ module ActiveMerchant #:nodoc:
         xml.instruct!
         xml.tag! 'WIRECARD_BXML' do
           xml.tag! 'W_REQUEST' do
-          xml.tag! 'W_JOB' do
-              xml.tag! 'JobID', ''
+            xml.tag! 'W_JOB' do
+              xml.tag! 'JobID', '1'
               # UserID for this transaction
               xml.tag! 'BusinessCaseSignature', options[:signature] || options[:login]
               # Create the whole rest of the message
@@ -152,13 +174,14 @@ module ActiveMerchant #:nodoc:
           xml.tag! 'CC_TRANSACTION' do
             xml.tag! 'TransactionID', options[:order_id]
             case options[:action]
-            when :preauthorization, :purchase
-              add_invoice(xml, money, options)
-              add_creditcard(xml, options[:credit_card])
-              add_address(xml, options[:billing_address])
-            when :capture
-              xml.tag! 'GuWID', options[:preauthorization]
-              add_amount(xml, money)
+              when :preauthorization, :purchase
+                add_invoice(xml, money, options)
+                add_creditcard(xml, options[:credit_card]) if options[:credit_card] && !is_repeated_request?(options)
+                add_address(xml, options[:billing_address]) unless is_repeated_request?(options)
+                add_customer_data(xml, options)
+              when :capture
+                xml.tag! 'GuWID', options[:preauthorization]
+                add_amount(xml, money)
             end
           end
         end
@@ -187,6 +210,7 @@ module ActiveMerchant #:nodoc:
           xml.tag! 'CVC2', creditcard.verification_value
           xml.tag! 'ExpirationYear', creditcard.year
           xml.tag! 'ExpirationMonth', format(creditcard.month, :two_digits)
+          xml.tag! 'CardHolderName', creditcard.name
           xml.tag! 'CardHolderName', [creditcard.first_name, creditcard.last_name].join(' ')
         end
       end
@@ -306,6 +330,10 @@ module ActiveMerchant #:nodoc:
       def encoded_credentials
         credentials = [@options[:login], @options[:password]].join(':')
         "Basic " << Base64.encode64(credentials).strip
+      end
+
+      def is_repeated_request?(options)
+        return options[:guwid] && options[:recurring] && options[:recurring] == 'Repeated'
       end
     end
   end
