@@ -87,8 +87,8 @@ module ActiveMerchant #:nodoc:
 
       # Purchase with repeated payment
       def charge_repeated(guwid, options = {})
-        options[:preauthorization] = guwid
-        if !options[:preauthorization] && options[:credit_card]
+        options[:authorization] = guwid
+        if !options[:authorization] && options[:credit_card]
           options[:credit_card] = options[:credit_card]
         else
           options.delete(:credit_card)
@@ -172,15 +172,19 @@ module ActiveMerchant #:nodoc:
           xml.tag! 'FunctionID', options[:description].to_s.slice(0,32)
           xml.tag! 'CC_TRANSACTION' do
             xml.tag! 'TransactionID', options[:order_id]
-            case options[:action]
-              when :preauthorization, :purchase
-                add_invoice(xml, money, options)
-                add_creditcard(xml, options[:credit_card]) if options[:credit_card] && !is_repeated_request?(options)
-                add_address(xml, options[:billing_address]) unless is_repeated_request?(options)
-                add_customer_data(xml, options)
-              when :capture
-                xml.tag! 'GuWID', options[:preauthorization]
-                add_amount(xml, money)
+            if [:preauthorization, :purchase].include?(action)
+              add_invoice(xml, money, options) if money
+              set_transaction_type(xml, options)
+              add_creditcard(xml, options[:credit_card]) if options[:credit_card] && !is_repeated_request?(options)
+              add_address(xml, options[:billing_address]) unless is_repeated_request?(options)
+              add_customer_data(xml, options)
+            end
+            if action == :capture || options[:authorization]
+              xml.tag! 'GuWID', options[:authorization] if options[:authorization]
+            end
+
+            if action == :capture
+              add_amount(xml, money)
             end
           end
         end
