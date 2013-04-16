@@ -82,7 +82,7 @@ module ActiveMerchant #:nodoc:
       def authorize_repeated(money, creditcard, options = {})
         options[:credit_card] = creditcard
         options[:recurring] = 'Initial'
-        commit(:authorization, money, options)
+        commit(:preauthorization, money, options)
       end
 
       # Purchase with repeated payment
