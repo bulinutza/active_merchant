@@ -211,7 +211,7 @@ module ActiveMerchant #:nodoc:
           xml.tag! 'ExpirationYear', creditcard.year
           xml.tag! 'ExpirationMonth', format(creditcard.month, :two_digits)
           xml.tag! 'CardHolderName', creditcard.name
-          xml.tag! 'CardHolderName', [creditcard.first_name, creditcard.last_name].join(' ')
+          xml.tag! 'CardHolderName', creditcard.name
         end
       end
 
