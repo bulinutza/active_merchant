@@ -90,10 +90,20 @@ module ActiveMerchant #:nodoc:
       # @return (String) the credit card brand
       attr_accessor :brand
 
-      # Returns or sets the name of the card holder.
+      # Returns or sets the first name of the card holder.
       #
       # @return [String]
-      attr_accessor :name
+      attr_accessor :first_name
+
+      # Returns or sets the last name of the card holder.
+      #
+      # @return [String]
+      attr_accessor :last_name
+
+      # Returns the name of the card holder
+      #
+      # @return [String]
+      attr_reader :name
 
       # Required for Switch / Solo cards
       attr_accessor :start_month, :start_year, :issue_number
@@ -134,6 +144,30 @@ module ActiveMerchant #:nodoc:
       # Returns whether either the +first_name+ or the +last_name+ attributes has been set.
       def name?
         @name.present?
+      end
+
+      # Returns whether the +first_name+ attribute has been set.
+      def first_name?
+        @first_name.present?
+      end
+
+      # Returns whether the +last_name+ attribute has been set.
+      def last_name?
+        @last_name.present?
+      end
+
+      # Returns the full name of the card holder.
+      #
+      # @return [String] the full name of the card holder
+      def name
+        [@first_name, @last_name].compact.join(' ')
+      end
+
+      def name=(full_name)
+        names = full_name.split
+        self.last_name  = names.pop
+        self.first_name = names.join(" ")
+        @name = [self.first_name, self.last_name].compact.join(' ')
       end
 
       def verification_value?
@@ -193,54 +227,54 @@ module ActiveMerchant #:nodoc:
 
       def validate_card_number #:nodoc:
         if number.blank?
-          errors.add :number, :default_error_messages_blank.t
+          errors.add :number, 'blank'
         elsif !CreditCard.valid_number?(number)
-          errors.add :number, :default_error_messages_invalid_creditcard.t
+          errors.add :number, 'invalid_creditcard'
         end
 
         unless errors.on(:number) || errors.on(:brand)
-          errors.add :brand, :default_error_messages_creditcard_does_not_match.t unless CreditCard.matching_brand?(number, brand)
+          errors.add :brand, 'creditcard_does_not_match' unless CreditCard.matching_brand?(number, brand)
         end
       end
 
       def validate_card_brand #:nodoc:
-        errors.add :brand, :default_error_messages_blank.t  if brand.blank? && number.present?
+        errors.add :brand, 'blank'  if brand.blank? && number.present?
         if ActiveMerchant::Billing::Base.test?
           valid_types = ['bogus'] + CreditCard.card_companies.keys
         else
           valid_types = CreditCard.card_companies.keys
         end
-        errors.add :brand, :default_error_messages_invalid.t  unless valid_types.include?(brand)
+        errors.add :brand, 'invalid'  unless valid_types.include?(brand)
       end
 
       alias_method :validate_card_type, :validate_card_brand
 
       def validate_essential_attributes #:nodoc:
-        errors.add :name, :default_error_messages_empty.t      if @name.blank?
+        errors.add :name, 'empty'      if @name.blank?
 
         if @month.to_i.zero? || @year.to_i.zero?
-          errors.add :month, :default_error_messages_blank.t   if @month.to_i.zero?
-          errors.add :year,  :default_error_messages_blank.t   if @year.to_i.zero?
+          errors.add :month, 'blank'   if @month.to_i.zero?
+          errors.add :year,  'blank'   if @year.to_i.zero?
         else
-          errors.add :month,      :default_error_messages_invalid.t unless valid_month?(@month)
-          errors.add :year,       :default_error_messages_expired.t if expired?
-          errors.add :year,       :default_error_messages_invalid.t unless expired? || valid_expiry_year?(@year)
+          errors.add :month,      'invalid' unless valid_month?(@month)
+          errors.add :year,       'expired' if expired?
+          errors.add :year,       'invalid' unless expired? || valid_expiry_year?(@year)
         end
       end
 
       def validate_switch_or_solo_attributes #:nodoc:
         if %w[switch solo].include?(brand)
           unless valid_month?(@start_month) && valid_start_year?(@start_year) || valid_issue_number?(@issue_number)
-            errors.add :start_month,  :default_error_messages_invalid.t      unless valid_month?(@start_month)
-            errors.add :start_year,   :default_error_messages_invalid.t     unless valid_start_year?(@start_year)
-            errors.add :issue_number, :default_error_messages_empty.t unless valid_issue_number?(@issue_number)
+            errors.add :start_month,  'invalid'     unless valid_month?(@start_month)
+            errors.add :start_year,   'invalid'     unless valid_start_year?(@start_year)
+            errors.add :issue_number, 'empty'       unless valid_issue_number?(@issue_number)
           end
         end
       end
 
       def validate_verification_value #:nodoc:
         if CreditCard.requires_verification_value?
-          errors.add :verification_value, :default_error_messages_blank.t unless verification_value?
+          errors.add :verification_value, 'blank' unless verification_value?
         end
       end
     end
