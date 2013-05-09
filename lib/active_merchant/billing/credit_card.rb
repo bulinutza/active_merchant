@@ -164,6 +164,12 @@ module ActiveMerchant #:nodoc:
       end
 
       def name=(full_name)
+        unless full_name
+          self.first_name = nil
+          self.last_name = nil
+          return
+        end
+
         names = full_name.split
         self.last_name  = names.pop
         self.first_name = names.join(" ")
