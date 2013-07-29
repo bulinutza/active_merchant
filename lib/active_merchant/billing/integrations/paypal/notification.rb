@@ -17,32 +17,32 @@ module ActiveMerchant #:nodoc:
         #
         #     def paypal_ipn
         #       notify = Paypal::Notification.new(request.raw_post)
-        #
+        #   
         #       if notify.masspay?
         #         masspay_items = notify.items
         #       end
         #
         #       order = Order.find(notify.item_id)
-        #
-        #       if notify.acknowledge
+        #     
+        #       if notify.acknowledge 
         #         begin
-        #
+        #           
         #           if notify.complete? and order.total == notify.amount
-        #             order.status = 'success'
-        #
+        #             order.status = 'success' 
+        #             
         #             shop.ship(order)
         #           else
         #             logger.error("Failed to verify Paypal's notification, please investigate")
         #           end
-        #
+        #   
         #         rescue => e
-        #           order.status        = 'failed'
+        #           order.status        = 'failed'      
         #           raise
         #         ensure
         #           order.save
         #         end
         #       end
-        #
+        #   
         #       render :nothing
         #     end
         #   end
@@ -97,6 +97,14 @@ module ActiveMerchant #:nodoc:
             params['payment_status']
           end
 
+          def active_profile?
+            params['profile_status'] && params['profile_status'] == 'Active'
+          end
+
+          def recurring_payment_id
+            params['recurring_payment_id']
+          end
+
           # Id of this transaction (paypal number)
           def transaction_id
             params['txn_id']
@@ -123,46 +131,46 @@ module ActiveMerchant #:nodoc:
             params['mc_currency']
           end
 
-          # This is the item number which we submitted to paypal
+          # This is the item number which we submitted to paypal 
           # The custom field is also mapped to item_id because PayPal
           # doesn't return item_number in dispute notifications
           def item_id
             params['item_number'] || params['custom']
           end
 
-          # This is the invoice which you passed to paypal
+          # This is the invoice which you passed to paypal 
           def invoice
             params['invoice']
-          end
+          end   
 
           # Was this a test transaction?
           def test?
             params['test_ipn'] == '1'
           end
-
+          
           def account
             params['business'] || params['receiver_email']
           end
 
-          # Acknowledge the transaction to paypal. This method has to be called after a new
-          # ipn arrives. Paypal will verify that all the information we received are correct and will return a
-          # ok or a fail.
-          #
+          # Acknowledge the transaction to paypal. This method has to be called after a new 
+          # ipn arrives. Paypal will verify that all the information we received are correct and will return a 
+          # ok or a fail. 
+          # 
           # Example:
-          #
+          # 
           #   def paypal_ipn
           #     notify = PaypalNotification.new(request.raw_post)
           #
-          #     if notify.acknowledge
+          #     if notify.acknowledge 
           #       ... process order ... if notify.complete?
           #     else
           #       ... log possible hacking attempt ...
           #     end
           def acknowledge
-            payload =  raw
+            payload = raw
 
             response = ssl_post(Paypal.service_url + '?cmd=_notify-validate', payload,
-                                'Content-Length' => "#{payload.size}",
+              'Content-Length' => "#{payload.size}",
                                 'User-Agent'     => "Active Merchant -- http://activemerchant.org",
                                 'Content-Type'   => "application/x-www-form-urlencoded"
             )
