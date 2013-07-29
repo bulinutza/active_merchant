@@ -30,7 +30,7 @@ class StripeTest < Test::Unit::TestCase
   def test_successful_capture
     @gateway.expects(:ssl_request).returns(successful_capture_response)
 
-    assert response = @gateway.capture(@amount, "ch_test_charge");
+    assert response = @gateway.capture(@amount, "ch_test_charge")
     assert_success response
     assert response.test?
   end
@@ -110,12 +110,20 @@ class StripeTest < Test::Unit::TestCase
     assert !post[:customer]
   end
 
-  def test_application_fee_is_submitted
+  def test_application_fee_is_submitted_for_purchase
     stub_comms(:ssl_request) do
       @gateway.purchase(@amount, @credit_card, @options.merge({:application_fee => 144}))
     end.check_request do |method, endpoint, data, headers|
       assert_match(/application_fee=144/, data)
     end.respond_with(successful_purchase_response)
+  end
+
+  def test_application_fee_is_submitted_for_capture
+    stub_comms(:ssl_request) do
+      @gateway.capture(@amount, "ch_test_charge", @options.merge({:application_fee => 144}))
+    end.check_request do |method, endpoint, data, headers|
+      assert_match(/application_fee=144/, data)
+    end.respond_with(successful_capture_response)
   end
 
   def test_client_data_submitted_with_purchase
@@ -159,6 +167,31 @@ class StripeTest < Test::Unit::TestCase
     }.returns(successful_purchase_response)
 
     @gateway.purchase(@amount, @credit_card, @options.merge(:ip => '1.1.1.1'))
+  end
+
+  def test_track_data_and_traditional_should_be_mutually_exclusive
+    stub_comms(:ssl_request) do
+      @gateway.purchase(@amount, @credit_card, @options)
+    end.check_request do |method, endpoint, data, headers|
+      assert data =~ /card\[name\]/
+      assert data !~ /card\[swipe_data\]/
+    end.respond_with(successful_purchase_response)
+
+    stub_comms(:ssl_request) do
+      @credit_card.track_data = '%B378282246310005^LONGSON/LONGBOB^1705101130504392?'
+      @gateway.purchase(@amount, @credit_card, @options)
+    end.check_request do |method, endpoint, data, headers|
+      assert data !~ /card\[name\]/
+      assert data =~ /card\[swipe_data\]/
+    end.respond_with(successful_purchase_response)
+  end
+
+  def test_address_is_included_with_card_data
+    stub_comms(:ssl_request) do
+      @gateway.purchase(@amount, @credit_card, @options)
+    end.check_request do |method, endpoint, data, headers|
+      assert data =~ /card\[address_line1\]/
+    end.respond_with(successful_purchase_response)
   end
 
   private

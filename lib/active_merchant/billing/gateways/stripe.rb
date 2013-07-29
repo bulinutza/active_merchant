@@ -1,4 +1,4 @@
-require 'json'
+require 'active_support/core_ext/hash/slice'
 
 module ActiveMerchant #:nodoc:
   module Billing #:nodoc:
@@ -58,7 +58,11 @@ module ActiveMerchant #:nodoc:
       end
 
       def capture(money, authorization, options = {})
-        commit(:post, "charges/#{CGI.escape(authorization)}/capture", {:amount => amount(money)})
+        post = {}
+        post[:amount] = amount(money)
+        add_application_fee(post, options)
+
+        commit(:post, "charges/#{CGI.escape(authorization)}/capture", post)
       end
 
       def void(identification, options = {})
@@ -70,6 +74,7 @@ module ActiveMerchant #:nodoc:
         post = {}
 
         post[:amount] = amount(money) if money
+        post[:refund_application_fee] = true if options[:refund_application_fee]
 
         commit(:post, "charges/#{CGI.escape(identification)}/refund", post, meta)
       end
@@ -109,14 +114,18 @@ module ActiveMerchant #:nodoc:
         add_customer(post, options)
         add_customer_data(post,options)
         post[:description] = options[:description] || options[:email]
-        post[:application_fee] = options[:application_fee] if options[:application_fee]
         add_flags(post, options)
+        add_application_fee(post, options)
         post
       end
 
       def add_amount(post, money, options)
         post[:amount] = amount(money)
         post[:currency] = (options[:currency] || currency(money)).downcase
+      end
+
+      def add_application_fee(post, options)
+        post[:application_fee] = options[:application_fee] if options[:application_fee]
       end
 
       def add_customer_data(post, options)
@@ -140,18 +149,27 @@ module ActiveMerchant #:nodoc:
       end
 
       def add_creditcard(post, creditcard, options)
+        card = {}
         if creditcard.respond_to?(:number)
-          card = {}
-          card[:number] = creditcard.number
-          card[:exp_month] = creditcard.month
-          card[:exp_year] = creditcard.year
-          card[:cvc] = creditcard.verification_value if creditcard.verification_value?
-          card[:name] = creditcard.name if creditcard.name
-          post[:card] = card
+          if creditcard.respond_to?(:track_data) && creditcard.track_data.present?
+            card[:swipe_data] = creditcard.track_data
+          else
+            card[:number] = creditcard.number
+            card[:exp_month] = creditcard.month
+            card[:exp_year] = creditcard.year
+            card[:cvc] = creditcard.verification_value if creditcard.verification_value?
+            card[:name] = creditcard.name if creditcard.name
+          end
 
+          post[:card] = card
           add_address(post, options)
         elsif creditcard.kind_of?(String)
-          post[:card] = creditcard
+          if options[:track_data]
+            card[:swipe_data] = options[:track_data]
+          else
+            card[:number] = creditcard
+          end
+          post[:card] = card
         end
       end
 

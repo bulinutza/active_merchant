@@ -2,9 +2,6 @@ rvm:
   - 2.0.0
   - 1.9.3
   - 1.9.2
-  - 1.8.7
-  - ree
-  - rbx-18mode
 
 gemfile:
   - Gemfile
@@ -20,5 +17,8 @@ notifications:
     - nathaniel@talbott.ws
 
 matrix:
-  allow_failures:
+  include:
     - rvm: 2.0.0
+      gemfile: Gemfile_rails40
+    - rvm: 1.9.3
+      gemfile: Gemfile_rails40
