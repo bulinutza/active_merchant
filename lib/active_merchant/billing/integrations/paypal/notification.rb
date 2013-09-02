@@ -80,6 +80,21 @@ module ActiveMerchant #:nodoc:
             ) + Time.zone_offset(parsed_time_fields[:zone])
           end
 
+          # When is the next payment scheduled for
+          def next_payment_at
+            return nil unless params['next_payment_date'].present?
+
+            parsed_time_fields = DateTime._strptime(params['next_payment_date'], "%H:%M:%S %b %d, %Y %Z")
+            Time.gm(
+                parsed_time_fields[:year],
+                parsed_time_fields[:mon],
+                parsed_time_fields[:mday],
+                parsed_time_fields[:hour],
+                parsed_time_fields[:min],
+                parsed_time_fields[:sec]
+            ) + Time.zone_offset(parsed_time_fields[:zone])
+          end
+
           # Status of transaction. List of possible values:
           # <tt>Canceled-Reversal</tt>::
           # <tt>Completed</tt>::
